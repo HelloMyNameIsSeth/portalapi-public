@@ -1,0 +1,106 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator nestjs {
+  provider = "prisma-generator-nestjs-dto"
+}
+
+model RaffleEntry {
+  id          Int       @id(map: "PK_41d589422354bba645c284cf174") @default(autoincrement())
+  tokenId     Int
+  raffleId    Int
+  walletId    Int
+  tokenTypeId Int
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  raffle      Raffle    @relation(fields: [raffleId], references: [id], map: "FK_6d43618e516322e2ba3e8a0e10f", onDelete: Cascade)
+  token       Token     @relation(fields: [tokenId], references: [id], map: "FK_0b3777639833567619be585e4f7")
+  tokenType   TokenType @relation(fields: [tokenTypeId], references: [id], map: "FK_592b168703a09e446fde5287e9e")
+  wallet      Wallet    @relation(fields: [walletId], references: [id], map: "FK_23cc0977e7f94832ec827f48b59")
+  winners     Winner[]
+
+  @@unique([tokenTypeId, raffleId, tokenId, walletId], map: "UQ_e4f62e076a51ff3e5b55fa011b7")
+  @@map("raffle_entries")
+}
+
+model Raffle {
+  id                         Int               @id(map: "PK_052c636fce78a0481c29fab2aa1") @default(autoincrement())
+  name                       String            @db.VarChar
+  type                       String?
+  image                      String?
+  value                      String?
+  endDate                    DateTime          @db.Timestamptz(6)
+  active                     Boolean           @default(false)
+  canWinInMultipleTokenTypes Boolean           @default(true)
+  createdAt                  DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime          @updatedAt @db.Timestamptz(6)
+  entries                    RaffleEntry[]
+  tokenTypes                 RaffleTokenType[]
+  winners                    Winner[]
+
+  @@map("raffles")
+}
+
+model RaffleTokenType {
+  raffleId    Int       @map("rafflesId")
+  tokenTypeId Int       @map("tokenTypesId")
+  raffle      Raffle    @relation(fields: [raffleId], references: [id], map: "FK_2c4c91f65c34952202bf089815f", onDelete: Cascade)
+  tokenType   TokenType @relation(fields: [tokenTypeId], references: [id], map: "FK_6c820c674e9b3d2f886169338cd")
+
+  @@id([raffleId, tokenTypeId], map: "PK_b7a3b707c156fe1d72ced7435e7")
+  @@index([raffleId], map: "IDX_2c4c91f65c34952202bf089815")
+  @@index([tokenTypeId], map: "IDX_6c820c674e9b3d2f886169338c")
+  @@map("raffles_token_types_token_types")
+}
+
+model TokenType {
+  id      Int               @id(map: "PK_5fa323bb0f8485f93e436f392a6") @default(autoincrement())
+  name    String            @unique(map: "UQ_080c763a9498ef4e96d41ac5c82") @db.VarChar
+  entries RaffleEntry[]
+  raffles RaffleTokenType[]
+  tokens  Token[]
+  winners Winner[]
+
+  @@map("token_types")
+}
+
+model Token {
+  id          Int           @id(map: "PK_3001e89ada36263dabf1fb6210a")
+  metaData    Json          @db.Json
+  tokenTypeId Int
+  tokenType   TokenType     @relation(fields: [tokenTypeId], references: [id], map: "FK_4873e709f3349e93488a6d5a60d")
+  entries     RaffleEntry[]
+
+  @@map("tokens")
+}
+
+model Wallet {
+  id            Int           @id(map: "PK_8402e5df5a30a229380e83e4f7e") @default(autoincrement())
+  publicAddress String        @unique(map: "UQ_d9ca2654d38b97b5530e6d1f21a") @db.VarChar
+  nonce         String        @unique(map: "UQ_a83538ffcc797a3fd2367c6935c") @db.VarChar
+  isAdmin       Boolean       @default(false)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+  entries       RaffleEntry[]
+
+  @@map("wallets")
+}
+
+model Winner {
+  id            Int          @id(map: "PK_45701ddf409cead5c6e92a12ce8") @default(autoincrement())
+  raffleEntryId Int
+  tokenTypeId   Int
+  raffleId      Int
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6)
+  entry         RaffleEntry? @relation(fields: [raffleEntryId], references: [id], map: "FK_177f7285f0c5a4eab8fe365fc20")
+  raffle        Raffle?      @relation(fields: [raffleId], references: [id], map: "FK_9b138ca0564261339ff8b68d315")
+  tokenType     TokenType?   @relation(fields: [tokenTypeId], references: [id], map: "FK_cf7a11f4dfd5acbab374ad37fee")
+
+  @@unique([raffleEntryId, tokenTypeId], map: "UQ_f10e50de39dae2cce93c9b8b734")
+  @@map("winners")
+}
