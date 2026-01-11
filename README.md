@@ -27,7 +27,7 @@ Requires Node.js 14+, Docker, and PostgreSQL.
 
 ```bash
 # Clone
-git clone https://github.com/yourusername/portalapi-public.git
+git clone https://github.com/HelloMyNameIsSeth/portalapi-public.git
 cd portalapi-public
 
 # Install
